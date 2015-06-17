@@ -214,6 +214,7 @@ import org.hl7.fhir.rdf.RDFValidator;
 import org.hl7.fhir.tools.implementations.XMLToolsGenerator;
 import org.hl7.fhir.tools.implementations.csharp.CSharpGenerator;
 import org.hl7.fhir.tools.implementations.delphi.DelphiGenerator;
+import org.hl7.fhir.tools.implementations.go.GoGenerator;
 import org.hl7.fhir.tools.implementations.java.JavaGenerator;
 import org.hl7.fhir.tools.implementations.javascript.JavaScriptGenerator;
 import org.hl7.fhir.tools.publisher.Publisher.DocumentHolder;
@@ -391,7 +392,7 @@ public class Publisher implements URIResolver, SectionNumberer {
   private boolean noArchive;
   private boolean web;
   private String diffProgram;
-  
+
   private Bundle typeBundle;
   private Bundle resourceBundle;
   private Bundle profileBundle;
@@ -1412,6 +1413,7 @@ public class Publisher implements URIResolver, SectionNumberer {
     page.getReferenceImplementations().add(new XMLToolsGenerator());
     page.getReferenceImplementations().add(new JavaScriptGenerator());
 //    page.getReferenceImplementations().add(new EMFGenerator());
+    page.getReferenceImplementations().add(new GoGenerator());
 
     // page.getReferenceImplementations().add(new ECoreOclGenerator());
   }
@@ -2325,7 +2327,7 @@ public class Publisher implements URIResolver, SectionNumberer {
           checkElement(sd, ed, false);
       }
     }
-    
+
   }
 
   private void checkElement(StructureDefinition sd, ElementDefinition ed, boolean inDiff) {
@@ -2371,7 +2373,7 @@ public class Publisher implements URIResolver, SectionNumberer {
     case LOGICAL: return checkLogical(sd);
     default:
       check(false, sd, "Unknown kind");
-      return false;    
+      return false;
     }
   }
 
@@ -2405,7 +2407,7 @@ public class Publisher implements URIResolver, SectionNumberer {
 
   private void check(boolean pass, StructureDefinition sd, String msg) {
     if (!pass)
-      System.out.println("Error in StructureDefinition "+sd.getId()+": "+msg);    
+      System.out.println("Error in StructureDefinition "+sd.getId()+": "+msg);
   }
 
   private String tail(String url) {
