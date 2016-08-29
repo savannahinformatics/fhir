@@ -86,14 +86,6 @@ Note that the build may not finish successfully. This is a known problem (usuall
 
 ```
 [java] Produce go Reference Implementation                                        0.396  22sec  568MB
-[java] Couldn't process search parameter phone path: RelatedPerson.telecom(system=phone)
-[java] Couldn't process search parameter email path: RelatedPerson.telecom(system=email)
-[java] Couldn't process search parameter phone path: Practitioner.telecom(system=phone)
-[java] Couldn't process search parameter email path: Practitioner.telecom(system=email)
-[java] Couldn't process search parameter phone path: Person.telecom(system=phone)
-[java] Couldn't process search parameter email path: Person.telecom(system=email)
-[java] Couldn't process search parameter email path: Patient.telecom(system=email)
-[java] Couldn't process search parameter phone path: Patient.telecom(system=phone)
 [java] Produce ember Reference Implementation                                     0.866  23sec  582MB
 ```
 
