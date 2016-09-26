@@ -30,7 +30,7 @@ const (
 	ContainedParam     = "_contained"
 	ContainedTypeParam = "_containedType"
 	OffsetParam        = "_offset" // Custom param, not in FHIR spec
-	FormatParam		   = "_format"
+	FormatParam        = "_format"
 )
 
 var globalSearchParams = map[string]bool{IDParam: true, LastUpdatedParam: true, TagParam: true,
@@ -191,7 +191,7 @@ func (q *Query) Options() *QueryOptions {
 				// Currently we only support JSON
 				panic(createUnsupportedSearchError("MSG_PARAM_INVALID", "Parameter \"_format\" content is invalid"))
 			}
-			
+
 		default:
 			panic(createUnsupportedSearchError("MSG_PARAM_UNKNOWN", fmt.Sprintf("Parameter \"%s\" not understood", param)))
 		}
@@ -994,8 +994,8 @@ func ParseParamNameModifierAndPostFix(fullParam string) (param string, modifier 
 		param = split[0]
 		postfix = split[1]
 	}
-	if strings.Contains(fullParam, ":") {
-		split := strings.SplitN(fullParam, ":", 2)
+	if strings.Contains(param, ":") {
+		split := strings.SplitN(param, ":", 2)
 		param = split[0]
 		modifier = split[1]
 	}
