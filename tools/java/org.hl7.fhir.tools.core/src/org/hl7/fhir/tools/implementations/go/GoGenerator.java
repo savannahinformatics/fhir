@@ -6,27 +6,27 @@ Contributed by Mitre Corporation
 Copyright (c) 2011-2016, HL7, Inc & The MITRE Corporation
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, 
+Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
- * Redistributions of source code must retain the above copyright notice, this 
+ * Redistributions of source code must retain the above copyright notice, this
    list of conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above copyright notice, 
-   this list of conditions and the following disclaimer in the documentation 
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
- * Neither the name of HL7 nor the names of its contributors may be used to 
-   endorse or promote products derived from this software without specific 
+ * Neither the name of HL7 nor the names of its contributors may be used to
+   endorse or promote products derived from this software without specific
    prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
  */
@@ -49,13 +49,14 @@ import org.hl7.fhir.utilities.ZipGenerator;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.STRawGroupDir;
+import org.stringtemplate.v4.StringRenderer;
 
 public class GoGenerator extends BaseGenerator implements PlatformGenerator {
 
     private static final List<String> UNSUPPORTED_SEARCH_PARAMS = Arrays.asList("_query", "_text", "_content", "email", "phone");
 
     private static final List<SearchParameterDefn.SearchType> UNSUPPORTED_SEARCH_PARAM_TYPES = Arrays.asList(SearchParameterDefn.SearchType.composite);
- 
+
     @Override
     public String getName() {
         return "go";
@@ -91,11 +92,13 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
             put("modelDir", Utilities.path(basedDir, "app", "models"));
             put("searchDir", Utilities.path(basedDir, "app", "search"));
             put("serverDir", Utilities.path(basedDir, "app", "server"));
+            put("configDir", Utilities.path(basedDir, "app", "config"));
         }};
 
         createDirStructure(dirs);
 
         STGroup templateGroup = new STRawGroupDir(Utilities.path(basedDir, "templates"));
+        templateGroup.registerRenderer(String.class, new StringRenderer());
 
         Map<String, TypeDefn> typeDefs = definitions.getTypes();
         for (String name : typeDefs.keySet()) {
@@ -134,6 +137,7 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
         // with no web endpoint.
         generateResourceHelpers(namesAndDefinitions.keySet(), dirs.get("modelDir"), templateGroup);
         generateSearchParameterDictionary(definitions, dirs.get("searchDir"), templateGroup);
+        generateIndexesConfig(definitions, dirs.get("configDir"), templateGroup);
 
         Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "auth", "config.go")), new File(dirs.get("authDir")));
         Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "auth", "heart_auth.go")), new File(dirs.get("authDir")));
@@ -158,7 +162,7 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
         Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "server", "request_logger.go")), new File(dirs.get("serverDir")));
         Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "server", "resource_controller.go")), new File(dirs.get("serverDir")));
         Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "server", "server_setup.go")), new File(dirs.get("serverDir")));
-        Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "server", "server.go")), new File(Utilities.path(basedDir, "app")));
+        Utilities.copyFileToDirectory(new File(Utilities.path(basedDir, "static", "server", "mongo_indexes.go")), new File(dirs.get("serverDir")));
 
         ZipGenerator zip = new ZipGenerator(destDir + getReference(version));
         zip.addFolder(implDir, "mgo", false);
@@ -233,7 +237,7 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
         ArrayList<ResourceSearchInfo> searchInfos = new ArrayList<ResourceSearchInfo>(definitions.getResources().size());
         for (ResourceDefn defn: definitions.getResources().values()) {
             ResourceSearchInfo searchInfo = new ResourceSearchInfo(defn.getName());
-            searchInfo.addAllSearchParams(getSearchParameterDefinitions(definitions, defn));
+            searchInfo.addAllSearchParams(getSearchParameterDefinitions(definitions, defn, true));
             searchInfo.sortSearchParams(); // Sort the param list so that the final result is deterministic
             searchInfos.add(searchInfo);
         }
@@ -256,13 +260,67 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
         controllerWriter.close();
     }
 
-    private List<SearchParam> getSearchParameterDefinitions(Definitions definitions, ResourceDefn resource) {
+    private void generateIndexesConfig(Definitions definitions, String outputDir, STGroup templateGroup) throws IOException {
+        ST utilTemplate = templateGroup.getInstanceOf("indexes.conf");
+
+        ArrayList<ResourceSearchInfo> searchInfos = new ArrayList<ResourceSearchInfo>(definitions.getResources().size());
+        for (ResourceDefn defn: definitions.getResources().values()) {
+            ResourceSearchInfo searchInfo = new ResourceSearchInfo(defn.getName());
+            searchInfo.addAllSearchParams(getSearchParameterDefinitions(definitions, defn, false));
+            searchInfos.add(searchInfo);
+        }
+
+        // Go through te search infos to create the set of unique required indexes.
+        // We do this to simplify the data passed to the template and to avoid duplicates.
+        //
+        // For example, a duplicate would arise in the following scenario:
+        // Account has two search parameters "patient" and "subject" that both reference the
+        // same search path "subject". This would cause the index "accounts.subject.referenceid_1"
+        // to be listed twice in the config file unless we test for these redundant search parameters.
+        ArrayList<ResourceIndexInfo> indexInfos = new ArrayList<ResourceIndexInfo>();
+
+        for (ResourceSearchInfo searchInfo: searchInfos) {
+            ResourceIndexInfo indexInfo = new ResourceIndexInfo(Utilities.pluralizeMe(searchInfo.getName().toLowerCase()));
+
+            for (SearchParam searchParam: searchInfo.getSearchParams()) {
+                List<SearchPath> paths = searchParam.getPaths();
+
+                if (searchParam.getType().equals(SearchParameterDefn.SearchType.reference) && paths.size() > 0) {
+                    String key = paths.get(0).getPath();
+                    MgoIndex newIndex = new MgoIndex(key);
+
+                    if (!indexInfo.hasIndex(newIndex)) {
+                        indexInfo.addIndex(newIndex);
+                    }
+                }
+            }
+            indexInfo.sortIndexes(); // to ensure the final result is deterministic
+            indexInfos.add(indexInfo);
+        }
+
+        // Sort the resource search infos so that the final result is deterministic
+        Collections.sort(indexInfos, new Comparator<ResourceIndexInfo>() {
+            @Override
+            public int compare(ResourceIndexInfo a, ResourceIndexInfo b) {
+                return a.name.compareTo(b.name);
+            }
+        });
+        utilTemplate.add("ResourceIndexInfos", indexInfos);
+
+        File outputFile = new File(Utilities.path(outputDir, "indexes.conf"));
+        Writer controllerWriter = new BufferedWriter(new FileWriter(outputFile));
+        controllerWriter.write(utilTemplate.render());
+        controllerWriter.flush();
+        controllerWriter.close();
+    }
+
+    private List<SearchParam> getSearchParameterDefinitions(Definitions definitions, ResourceDefn resource, boolean useArrayNotation) {
         ArrayList<SearchParam> params = new ArrayList<SearchParam>();
         for (TypeRef ref: resource.getRoot().getTypes()) {
             if (definitions.getResources().containsKey(ref.getName())) {
-                params.addAll(getSearchParameterDefinitions(definitions, definitions.getResources().get(ref.getName())));
+                params.addAll(getSearchParameterDefinitions(definitions, definitions.getResources().get(ref.getName()), true));
             } else if (definitions.getBaseResources().containsKey(ref.getName())) {
-                params.addAll(getSearchParameterDefinitions(definitions, definitions.getBaseResources().get(ref.getName())));
+                params.addAll(getSearchParameterDefinitions(definitions, definitions.getBaseResources().get(ref.getName()), true));
             }
         }
         for (SearchParameterDefn p : resource.getSearchParams().values()) {
@@ -294,13 +352,12 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
                     // Some paths (in bundle parameters) have an indexer at the end.  In that case, we only support
                     // index 0 (which, lucky for us, is all that is needed in DSTU2).  Still, we need to strip the
                     // indexer for the rest of this to work.
-                    boolean zeroIndexer = false;
-                    if (path.endsWith("(0)")) {
-                        path = path.substring(0, path.length() - 3);
-                        zeroIndexer = true;
+                    String cleanPath = path;
+                    if (path.contains("(0)")) {
+                        cleanPath = path.replaceAll("\\(0\\)", "");
                     }
-                    ElementDefn el = resource.getRoot().getElementForPath(path, definitions, "Resolving Search Parameter Path", true);
-                    path = enhancePath(definitions, resource, path, zeroIndexer);
+                    ElementDefn el = resource.getRoot().getElementForPath(cleanPath, definitions, "Resolving Search Parameter Path", true);
+                    path = enhancePath(definitions, resource, path, useArrayNotation);
                     // Special support for id since we store it as _id (TODO: this probably breaks the notion of the "internal" id)
                     if ("_id".equals(param.getName())) {
                         path = "_id";
@@ -346,17 +403,29 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
         return params;
     }
 
-    private String enhancePath(Definitions definitions, ResourceDefn resource, String path, boolean zeroIndexer) {
+    private String enhancePath(Definitions definitions, ResourceDefn resource, String path, boolean useArrayNotation) {
         StringBuilder newPath = new StringBuilder();
 
         String[] parts = path.split("\\.");
         // Intentionally skip first part (resource name) then detect and mark arrays in path
         for (int i = 1; i < parts.length; i++) {
             try {
+                boolean zeroIndexer = false;
+                if (parts[i].endsWith("(0)")) {
+                    parts[i] = parts[i].substring(0, parts[i].length() - 3);
+                    zeroIndexer = true;
+                }
                 String partialPath = String.join(".", Arrays.copyOfRange(parts, 0, i+1));
                 ElementDefn el = resource.getRoot().getElementForPath(partialPath, definitions, "resolving search parameter path", true);
-                if (el.getMaxCardinality() > 1) {
+
+                if (useArrayNotation && el.getMaxCardinality() > 1) {
                     newPath.append(zeroIndexer ? "[0]" : "[]");
+                } else if (useArrayNotation && zeroIndexer) {
+                    // This is a bug in DSTU2 spec that puts the zero indexer in the wrong part of the path.
+                    // e.g., Bundle.message has path Bundle.entry.resource(0) even though resource is not an array.
+                    // So... fix it by replacing all [] with [0]
+                    String fixedPath = newPath.toString().replaceAll("\\[\\]", "[0]");
+                    newPath = new StringBuilder().append(fixedPath);
                 }
                 newPath.append(parts[i]).append(".");
             } catch (Exception e) {
@@ -368,7 +437,6 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
         }
         return newPath.toString();
     }
-
 
     private static class ResourceSearchInfo {
         private final String name;
@@ -493,6 +561,71 @@ public class GoGenerator extends BaseGenerator implements PlatformGenerator {
 
         public String getType() {
             return type;
+        }
+    }
+
+    /*
+        ResourceIndexInfo defines a list of indexes to be created for a specific
+        collection in the fhir database. This information is passed to the indexes.conf.st
+        template.
+    */
+    private static class ResourceIndexInfo {
+        private final String name;  // pluralized
+        private final ArrayList<MgoIndex> indexes;
+
+        public ResourceIndexInfo(String name) {
+            this.name = name;
+            this.indexes = new ArrayList<MgoIndex>();
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public ArrayList<MgoIndex> getIndexes() {
+            return indexes;
+        }
+
+        public boolean hasIndex(MgoIndex testIndex) {
+            for (MgoIndex index: indexes) {
+                if (index.getName().equals(testIndex.getName())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void addIndex(MgoIndex index) {
+            indexes.add(index);
+        }
+
+        public void sortIndexes() {
+            Collections.sort(indexes, new Comparator<MgoIndex>() {
+                @Override
+                public int compare(MgoIndex a, MgoIndex b) {
+                    return a.name.compareTo(b.name);
+                }
+            });
+        }
+    }
+
+    /*
+        MgoIndex defines a single index to be created in mongo.
+        In the indexes.conf.st template this definition will create an entry like:
+        <collection_name>.<index_name>_1
+
+        The index name could potentially contain sub-fields too, e.g. "subject.referenceid".
+        For now we create all indexes in ascending order (hence the "_1")
+    */
+    private static class MgoIndex {
+        private final String name;
+
+        public MgoIndex(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
         }
     }
 
