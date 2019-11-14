@@ -14,21 +14,21 @@
       <code value="info"/>
       <target>
         <code value="routine"/>
-        <relationship value="equivalent"/>
+        <relationship value="equivalent-target"/>
       </target>
     </element>
     <element>
       <code value="warning"/>
       <target>
         <code value="urgent"/>
-        <relationship value="equivalent"/>
+        <relationship value="equivalent-target"/>
       </target>
     </element>
     <element>
       <code value="critical"/>
       <target>
         <code value="stat"/>
-        <relationship value="equivalent"/>
+        <relationship value="equivalent-target"/>
       </target>
     </element>
   </group>

@@ -54,7 +54,7 @@
             <target>
                 <code value="H"/>
                 <display value="home"/>
-                <relationship value="equivalent"/>
+                <relationship value="equivalent-target"/>
             </target>
         </element>
         <element>
@@ -63,7 +63,7 @@
             <target>
                 <code value="WP"/>
                 <display value="work place"/>
-                <relationship value="equivalent"/>
+                <relationship value="equivalent-target"/>
             </target>
         </element>
         <element>
@@ -72,7 +72,7 @@
             <target>
                 <code value="TMP"/>
                 <display value="temporary address"/>
-                <relationship value="equivalent"/>
+                <relationship value="equivalent-target"/>
             </target>
         </element>
         <element>
@@ -81,7 +81,7 @@
             <target>
                 <code value="BAD"/>
                 <display value="bad address"/>
-                <relationship value="not-related-to"/>
+                <relationship value="not-related-target"/>
                 <comment value="In the HL7 v3 AD, old is handled by the usablePeriod element, but you have to provide a time, there's no simple equivalent of flagging an address as old"/>
             </target>
         </element>
