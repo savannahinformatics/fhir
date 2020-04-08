@@ -1,4 +1,5 @@
 package org.hl7.fhir.tools.implementations.java;
+
 /*
 Copyright (c) 2011+, HL7, Inc
 All rights reserved.
@@ -104,7 +105,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
   private Map<String, String> enumInfo = new HashMap<String, String>();
 
   private Date genDate;
-  
+
   public JavaGenerator(FolderManager folders) throws FileNotFoundException, IOException {
     super();
     this.folders = folders;
@@ -118,11 +119,11 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     for (String line : lines) {
       if (cn != null) {
         if (line.equals("----")) {
-          adornments.put(cn,  current.toString());
+          adornments.put(cn, current.toString());
           cn = null;
           current = null;
         } else {
-          current.append(line+"\r\n");
+          current.append(line + "\r\n");
         }
       } else if (line.startsWith("-- ")) {
         cn = line.substring(3);
@@ -141,61 +142,67 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
 
   @Override
   public String getDescription(String version, String buildId) {
-    return "Resource Definitions, XML & Json parsers, & various utilities. "+
-        "A Java client can be found at [https://github.com/cnanjo/FhirJavaReferenceClient](https://github.com/cnanjo/FhirJavaReferenceClient). HAPI also publishes a java reference implementation at [http://jamesagnew.github.io/hapi-fhir/](http://jamesagnew.github.io/hapi-fhir/)";
+    return "Resource Definitions, XML & Json parsers, & various utilities. "
+        + "A Java client can be found at [https://github.com/cnanjo/FhirJavaReferenceClient](https://github.com/cnanjo/FhirJavaReferenceClient). HAPI also publishes a java reference implementation at [http://jamesagnew.github.io/hapi-fhir/](http://jamesagnew.github.io/hapi-fhir/)";
   }
 
   @Override
-  public void generate(Definitions definitions, String destDir, String actualImpl, String implDir, String version, Date genDate, Logger logger, String buildId) throws Exception {
+  public void generate(Definitions definitions, String destDir, String actualImpl, String implDir, String version, Date genDate, Logger logger, String buildId)
+      throws Exception {
     char sl = File.separatorChar;
     this.genDate = genDate;
-    javaDir       =  implDir+"org.hl7.fhir.r4"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl;
-    javaParserDir =  implDir+"org.hl7.fhir.r4"+sl+"src"+sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"formats"+sl;
+    javaDir = implDir + "org.hl7.fhir.r4" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "r4" + sl + "model" + sl;
+    javaParserDir = implDir + "org.hl7.fhir.r4" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "r4" + sl + "formats" + sl;
     Utilities.createDirectory(javaDir);
     Utilities.createDirectory(Utilities.path(javaDir, "codesystems"));
     Utilities.createDirectory(javaParserDir);
-    Utilities.createDirectory(implDir+"org.hl7.fhir.convertors"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"convertors");
+    Utilities.createDirectory(implDir + "org.hl7.fhir.convertors" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "convertors");
     this.definitions = definitions;
 
-    JavaFactoryGenerator jFactoryGen = new JavaFactoryGenerator(new FileOutputStream(javaDir+"ResourceFactory.java"));
+    JavaFactoryGenerator jFactoryGen = new JavaFactoryGenerator(new FileOutputStream(javaDir + "ResourceFactory.java"));
 
     generateResourceTypeEnum(version, buildId, genDate);
-    JavaEnumerationsGenerator jEnums = new JavaEnumerationsGenerator(new FileOutputStream(javaDir+"Enumerations.java"), definitions, enumInfo);
+    JavaEnumerationsGenerator jEnums = new JavaEnumerationsGenerator(new FileOutputStream(javaDir + "Enumerations.java"), definitions, enumInfo);
     jEnums.generate(genDate, version);
 
     for (String n : definitions.getBaseResources().keySet()) {
       ResourceDefn root = definitions.getBaseResources().get(n);
-      JavaResourceGenerator jrg = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(root.getName())+".java"), definitions, adornments, enumInfo);
+      JavaResourceGenerator jrg = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(root.getName()) + ".java"), definitions, adornments,
+          enumInfo);
       jrg.generate(root.getRoot(), javaClassName(root.getName()), JavaGenClass.Resource, null, genDate, version, root.isAbstract(), null, null);
       jrg.close();
       hashes.put(n, Long.toString(jrg.getHashSum()));
       if (!root.isAbstract())
-        jFactoryGen.registerReference(n,  root.getName());
+        jFactoryGen.registerReference(n, root.getName());
     }
     for (String n : definitions.getPrimitives().keySet())
-      jFactoryGen.registerType(n,  Utilities.capitalize(n)+"Type");
+      jFactoryGen.registerType(n, Utilities.capitalize(n) + "Type");
 
     for (String n : definitions.getResources().keySet()) {
       ResourceDefn root = definitions.getResourceByName(n);
-      JavaResourceGenerator jrg = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(root.getName())+".java"), definitions, adornments, enumInfo);
-      jrg.generate(root.getRoot(), javaClassName(root.getName()), JavaGenClass.Resource, null, genDate, version, false, root.getSearchParams(), root.getTemplate());
+      JavaResourceGenerator jrg = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(root.getName()) + ".java"), definitions, adornments,
+          enumInfo);
+      jrg.generate(root.getRoot(), javaClassName(root.getName()), JavaGenClass.Resource, null, genDate, version, false, root.getSearchParams(),
+          root.getTemplate());
       jrg.close();
       hashes.put(n, Long.toString(jrg.getHashSum()));
-      jFactoryGen.registerReference(n,  root.getName());
+      jFactoryGen.registerReference(n, root.getName());
     }
 
     for (String n : definitions.getInfrastructure().keySet()) {
       ElementDefn root = definitions.getInfrastructure().get(n);
-      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(root.getName())+".java"), definitions, adornments, enumInfo);
+      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(root.getName()) + ".java"), definitions, adornments,
+          enumInfo);
       jgen.generate(root, javaClassName(root.getName()), JavaGenClass.Structure, null, genDate, version, false, null, null);
       jgen.close();
       hashes.put(n, Long.toString(jgen.getHashSum()));
-      if (!root.getName().equals("Element") && !root.getName().equals("BackboneElement") )
-        jFactoryGen.registerType(n,  root.getName());
+      if (!root.getName().equals("Element") && !root.getName().equals("BackboneElement"))
+        jFactoryGen.registerType(n, root.getName());
     }
     for (String n : definitions.getTypes().keySet()) {
       ElementDefn root = definitions.getTypes().get(n);
-      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(root.getName())+".java"), definitions, adornments, enumInfo);
+      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(root.getName()) + ".java"), definitions, adornments,
+          enumInfo);
       jgen.generate(root, javaClassName(root.getName()), JavaGenClass.Type, null, genDate, version, false, null, null);
       jgen.close();
       hashes.put(n, Long.toString(jgen.getHashSum()));
@@ -203,16 +210,17 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
         for (TypeRef td : definitions.getKnownTypes()) {
           if (td.getName().equals(root.getName()) && td.hasParams()) {
             for (String pt : td.getParams()) {
-              jFactoryGen.registerType(n+"<"+getTitle(pt)+">", root.getName()+"<"+getTitle(pt)+">");
+              jFactoryGen.registerType(n + "<" + getTitle(pt) + ">", root.getName() + "<" + getTitle(pt) + ">");
             }
           }
         }
       } else
-        jFactoryGen.registerType(n,  root.getName());
+        jFactoryGen.registerType(n, root.getName());
     }
     for (ProfiledType cd : definitions.getConstraints().values()) {
       ElementDefn root = definitions.getTypes().get(cd.getBaseType());
-      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(cd.getName())+".java"), definitions, adornments, enumInfo);
+      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(cd.getName()) + ".java"), definitions, adornments,
+          enumInfo);
       jgen.setInheritedHash(hashes.get(cd.getBaseType()));
       jgen.generate(root, javaClassName(cd.getName()), JavaGenClass.Constraint, cd, genDate, version, false, null, null);
       jFactoryGen.registerType(cd.getName(), cd.getName());
@@ -222,29 +230,32 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
 
     for (String n : definitions.getStructures().keySet()) {
       ElementDefn root = definitions.getStructures().get(n);
-      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(root.getName())+".java"), definitions, adornments, enumInfo);
+      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(root.getName()) + ".java"), definitions, adornments,
+          enumInfo);
       jgen.generate(root, javaClassName(root.getName()), JavaGenClass.Type, null, genDate, version, false, null, null);
-      jFactoryGen.registerType(n,  root.getName());
+      jFactoryGen.registerType(n, root.getName());
       jgen.close();
     }
 
     for (String r : definitions.getResourceTemplates().keySet()) {
       ResourceDefn root = definitions.getResourceTemplates().get(r);
-      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir+javaClassName(root.getName())+".java"), definitions, adornments, enumInfo);
+      JavaResourceGenerator jgen = new JavaResourceGenerator(new FileOutputStream(javaDir + javaClassName(root.getName()) + ".java"), definitions, adornments,
+          enumInfo);
       jgen.generate(root.getRoot(), root.getName(), JavaGenClass.Resource, null, genDate, version, true, null, null);
       jgen.close();
     }
-    
+
     for (CodeSystem cs : definitions.getCodeSystems().values()) {
       if (cs != null) {
         if (!cs.hasId())
-          throw new Exception("No id on "+cs.getUrl());
+          throw new Exception("No id on " + cs.getUrl());
         if (cs.getUserData("java-generated") == null && !cs.getId().startsWith("v2-")) {
           String tns = tokenize(cs.getId());
-          JavaCodeSystemGenerator vsgen = new JavaCodeSystemGenerator(new FileOutputStream(Utilities.path(javaDir, "codesystems", tns+".java")));
+          JavaCodeSystemGenerator vsgen = new JavaCodeSystemGenerator(new FileOutputStream(Utilities.path(javaDir, "codesystems", tns + ".java")));
           vsgen.generate(genDate, version, cs, tns);
           vsgen.close();
-          JavaCodeSystemFactoryGenerator vsfgen = new JavaCodeSystemFactoryGenerator(new FileOutputStream(Utilities.path(javaDir, "codesystems", tns+"EnumFactory.java")));
+          JavaCodeSystemFactoryGenerator vsfgen = new JavaCodeSystemFactoryGenerator(
+              new FileOutputStream(Utilities.path(javaDir, "codesystems", tns + "EnumFactory.java")));
           vsfgen.generate(genDate, version, cs, tns);
           vsfgen.close();
         }
@@ -256,43 +267,52 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     deleteOldFile("JsonComposer");
     deleteOldFile("JsonBaseComposer");
 
-    JavaParserXmlGenerator jParserGenX = new JavaParserXmlGenerator(new FileOutputStream(javaParserDir+"XmlParser.java"));
+    JavaParserXmlGenerator jParserGenX = new JavaParserXmlGenerator(new FileOutputStream(javaParserDir + "XmlParser.java"));
     jParserGenX.generate(definitions, version, genDate);
     jParserGenX.generateComposer();
     jParserGenX.finish();
-    JavaParserJsonGenerator jParserGenJ = new JavaParserJsonGenerator(new FileOutputStream(javaParserDir+"JsonParser.java"));
+    JavaParserJsonGenerator jParserGenJ = new JavaParserJsonGenerator(new FileOutputStream(javaParserDir + "JsonParser.java"));
     jParserGenJ.generateParser(definitions, version, genDate);
     jParserGenJ.generateComposer();
     jParserGenJ.finish();
-    JavaParserRdfGenerator jParserGenR = new JavaParserRdfGenerator(new FileOutputStream(javaParserDir+"RdfParser.java"));
+    JavaParserRdfGenerator jParserGenR = new JavaParserRdfGenerator(new FileOutputStream(javaParserDir + "RdfParser.java"));
     jParserGenR.generate(definitions, version, genDate);
     jParserGenR.generateComposer();
     jParserGenR.finish();
     jFactoryGen.generate(version, genDate);
-    JavaConverterGenerator jConv = new JavaConverterGenerator(new FileOutputStream(implDir+"org.hl7.fhir.convertors"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"convertors"+sl+"VersionConvertor.javat"));
+    JavaConverterGenerator jConv = new JavaConverterGenerator(new FileOutputStream(
+        implDir + "org.hl7.fhir.convertors" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "convertors" + sl + "VersionConvertor.javat"));
     jConv.generate(definitions, version, genDate);
     jConv.flush();
     jConv.close();
-    TextFile.stringToFileNoPrefix(makeConstantsClass(version, buildId, genDate), implDir+"org.hl7.fhir.r4"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl+"Constants.java");
-    ZipGenerator zip = new ZipGenerator(destDir+getReference(version));
-    zip.addFiles(actualImpl+"org.hl7.fhir.r4"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"formats"+sl, "org/hl7/fhir/r4/formats/", ".java", null);
-    zip.addFiles(actualImpl+"org.hl7.fhir.r4"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl, "org/hl7/fhir/r4/model/", ".java", null);
-    //    zip.addFiles(implDir+"org.hl7.fhir.r4"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl+"annotations"+sl, "org/hl7/fhir/instance/model/annotations/", ".java", null);
-    zip.addFiles(actualImpl+"org.hl7.fhir.rdf"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"rdf"+sl, "org/hl7/fhir/rdf/", ".java", null);
-    zip.addFiles(actualImpl+"org.hl7.fhir.utilities"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"utilities"+sl, "org/hl7/fhir/utilities/", ".java", null);
-    zip.addFiles(actualImpl+"org.hl7.fhir.utilities"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"utilities"+sl+"xhtml"+sl, "org/hl7/fhir/utilities/xhtml/", ".java", null);
-    zip.addFiles(actualImpl+"org.hl7.fhir.utilities"+sl+"src"+ sl+"org"+sl+"hl7"+sl+"fhir"+sl+"utilities"+sl+"xml"+sl, "org/hl7/fhir/utilities/xml/", ".java", null);
+    TextFile.stringToFileNoPrefix(makeConstantsClass(version, buildId, genDate),
+        implDir + "org.hl7.fhir.r4" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "r4" + sl + "model" + sl + "Constants.java");
+    ZipGenerator zip = new ZipGenerator(destDir + getReference(version));
+    zip.addFiles(actualImpl + "org.hl7.fhir.r4" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "r4" + sl + "formats" + sl,
+        "org/hl7/fhir/r4/formats/", ".java", null);
+    zip.addFiles(actualImpl + "org.hl7.fhir.r4" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "r4" + sl + "model" + sl, "org/hl7/fhir/r4/model/",
+        ".java", null);
+    // zip.addFiles(implDir+"org.hl7.fhir.r4"+sl+"src"+
+    // sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl+"annotations"+sl,
+    // "org/hl7/fhir/instance/model/annotations/", ".java", null);
+    zip.addFiles(actualImpl + "org.hl7.fhir.rdf" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "rdf" + sl, "org/hl7/fhir/rdf/", ".java", null);
+    zip.addFiles(actualImpl + "org.hl7.fhir.utilities" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "utilities" + sl, "org/hl7/fhir/utilities/",
+        ".java", null);
+    zip.addFiles(actualImpl + "org.hl7.fhir.utilities" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "utilities" + sl + "xhtml" + sl,
+        "org/hl7/fhir/utilities/xhtml/", ".java", null);
+    zip.addFiles(actualImpl + "org.hl7.fhir.utilities" + sl + "src" + sl + "org" + sl + "hl7" + sl + "fhir" + sl + "utilities" + sl + "xml" + sl,
+        "org/hl7/fhir/utilities/xml/", ".java", null);
 
-    String importsDir = folders.rootDir+sl+"tools"+sl+"java"+sl+"imports";
-    zip.addFileName("imports/xpp3-1.1.4c.jar", importsDir+sl+"xpp3-1.1.4c.jar", false);
-    zip.addFileName("imports/gson-2.3.jar", importsDir+sl+"gson-2.3.jar", false);
-    zip.addFileName("imports/commons-codec-1.9.jar", importsDir+sl+"commons-codec-1.9.jar", false);
-    zip.addFileName("imports/commons-lang3-3.3.2.jar", importsDir+sl+"commons-lang3-3.3.2.jar", false);
-    zip.addFileName("imports/commons-logging-1.1.1.jar", importsDir+sl+"commons-logging-1.1.1.jar", false);
-    zip.addFileName("imports/commons-logging-api-1.1.jar", importsDir+sl+"commons-logging-api-1.1.jar", false);
-    zip.addFileName("imports/httpclient-4.2.3.jar", importsDir+sl+"httpclient-4.2.3.jar", false);
-    zip.addFileName("imports/httpcore-4.2.2.jar", importsDir+sl+"httpcore-4.2.2.jar", false);
-    zip.addFileName("imports/hapi-fhir-base-3.4.0.jar", importsDir+sl+"hapi-fhir-base-3.4.0.jar", false);
+    String importsDir = folders.rootDir + sl + "tools" + sl + "java" + sl + "imports";
+    zip.addFileName("imports/xpp3-1.1.4c.jar", importsDir + sl + "xpp3-1.1.4c.jar", false);
+    zip.addFileName("imports/gson-2.3.jar", importsDir + sl + "gson-2.3.jar", false);
+    zip.addFileName("imports/commons-codec-1.9.jar", importsDir + sl + "commons-codec-1.9.jar", false);
+    zip.addFileName("imports/commons-lang3-3.3.2.jar", importsDir + sl + "commons-lang3-3.3.2.jar", false);
+    zip.addFileName("imports/commons-logging-1.1.1.jar", importsDir + sl + "commons-logging-1.1.1.jar", false);
+    zip.addFileName("imports/commons-logging-api-1.1.jar", importsDir + sl + "commons-logging-api-1.1.jar", false);
+    zip.addFileName("imports/httpclient-4.2.3.jar", importsDir + sl + "httpclient-4.2.3.jar", false);
+    zip.addFileName("imports/httpcore-4.2.2.jar", importsDir + sl + "httpcore-4.2.2.jar", false);
+    zip.addFileName("imports/hapi-fhir-base-3.4.0.jar", importsDir + sl + "hapi-fhir-base-3.4.0.jar", false);
 
     zip.close();
     jParserGenX.close();
@@ -303,12 +323,12 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
   }
 
   private static final String CACHEFILE = "c:\\temp\\java.enums.r4.cache";
-  
+
   private void saveEnumInfo() throws IOException {
     if (new File("C:\\temp").exists()) {
       StringBuilder b = new StringBuilder();
       for (Entry<String, String> e : enumInfo.entrySet()) {
-        b.append(e.getKey()+"="+e.getValue()+"\r\n");
+        b.append(e.getKey() + "=" + e.getValue() + "\r\n");
       }
       TextFile.stringToFile(b.toString(), new File(CACHEFILE), false);
     }
@@ -338,7 +358,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
   }
 
   private void deleteOldFile(String name) {
-    File f = new File(javaParserDir+name+".java");
+    File f = new File(javaParserDir + name + ".java");
     if (f.exists())
       f.delete();
   }
@@ -347,33 +367,30 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     StringBuilder rt = new StringBuilder();
     boolean first = true;
     for (String n : definitions.sortedResourceNames()) {
-      if (first) first = false; else rt.append("|");
+      if (first)
+        first = false;
+      else
+        rt.append("|");
       rt.append(n);
     }
-      
-    String s =
-        "package org.hl7.fhir.r4.model;\r\n"+
-            "\r\n/*\r\n"+Config.FULL_LICENSE_CODE+"*/\r\n\r\n"+
-            "// Generated on "+Config.DATE_FORMAT().format(genDate)+" for FHIR v"+version+"\r\n\r\n"+
-            "\r\n"+
-            "public class Constants {\r\n"+
-            "\r\n"+
-            "  public final static String VERSION = \""+version+"\";\r\n"+
-            "  public final static String BUILD_ID = \""+buildId+"\";\r\n"+
-            "  public final static String DATE = \""+genDate+"\";\r\n"+
-            "  public final static String URI_REGEX = \"((http|https)://([A-Za-z0-9\\\\\\\\\\\\.\\\\:\\\\%\\\\$]*\\\\/)*)?("+rt.toString()+")\\\\/[A-Za-z0-9\\\\-\\\\.]{1,64}(\\\\/_history\\\\/[A-Za-z0-9\\\\-\\\\.]{1,64})?\";\r\n"+
-            "}\r\n";
+
+    String s = "package org.hl7.fhir.r4.model;\r\n" + "\r\n/*\r\n" + Config.FULL_LICENSE_CODE + "*/\r\n\r\n" + "// Generated on "
+        + Config.DATE_FORMAT().format(genDate) + " for FHIR v" + version + "\r\n\r\n" + "\r\n" + "public class Constants {\r\n" + "\r\n"
+        + "  public final static String VERSION = \"" + version + "\";\r\n" + "  public final static String BUILD_ID = \"" + buildId + "\";\r\n"
+        + "  public final static String DATE = \"" + genDate + "\";\r\n"
+        + "  public final static String URI_REGEX = \"((http|https)://([A-Za-z0-9\\\\\\\\\\\\.\\\\:\\\\%\\\\$]*\\\\/)*)?(" + rt.toString()
+        + ")\\\\/[A-Za-z0-9\\\\-\\\\.]{1,64}(\\\\/_history\\\\/[A-Za-z0-9\\\\-\\\\.]{1,64})?\";\r\n" + "}\r\n";
     return s;
   }
 
   private void generateResourceTypeEnum(String version, String buildId, Date genDate) throws Exception {
 
-    OutputStreamWriter output = new OutputStreamWriter(new FileOutputStream(javaDir+"ResourceType.java"), "UTF-8");
+    OutputStreamWriter output = new OutputStreamWriter(new FileOutputStream(javaDir + "ResourceType.java"), "UTF-8");
     output.write("package org.hl7.fhir.r4.model;\r\n");
     output.write("\r\n");
     output.write("import org.hl7.fhir.exceptions.FHIRException;\r\n");
     output.write("\r\n");
-    output.write("// Generated on "+Config.DATE_FORMAT().format(genDate)+" for FHIR v"+version+"\r\n\r\n");
+    output.write("// Generated on " + Config.DATE_FORMAT().format(genDate) + " for FHIR v" + version + "\r\n\r\n");
     output.write("public enum ResourceType {");
 
     List<String> names = new ArrayList<String>();
@@ -390,23 +407,23 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
         first = false;
       else
         output.write(",");
-      output.write("\r\n    "+n);
+      output.write("\r\n    " + n);
     }
     output.write(";\r\n\r\n");
 
     output.write("\r\n    public String getPath() {;\r\n");
     output.write("      switch (this) {\r\n");
     for (String n : names) {
-      output.write("    case "+n+":\r\n");
-      output.write("      return \""+n.toLowerCase()+"\";\r\n");
+      output.write("    case " + n + ":\r\n");
+      output.write("      return \"" + n.toLowerCase() + "\";\r\n");
     }
     output.write("    }\r\n      return null;\r\n");
     output.write("  }\r\n\r\n");
 
     output.write("\r\n    public static ResourceType fromCode(String code) throws FHIRException {;\r\n");
     for (String n : names) {
-      output.write("    if (\""+n+"\".equals(code))\r\n");
-      output.write("      return "+n+";\r\n");
+      output.write("    if (\"" + n + "\".equals(code))\r\n");
+      output.write("      return " + n + ";\r\n");
     }
     output.write("\r\n    throw new FHIRException(\"Unknown resource type\"+code);\r\n");
     output.write("  }\r\n\r\n");
@@ -424,7 +441,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
   }
 
   private String getTitle(String n) {
-    return n.substring(0,1).toUpperCase()+n.substring(1);
+    return n.substring(0, 1).toUpperCase() + n.substring(1);
   }
 
   @Override
@@ -432,21 +449,20 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     return "Java";
   }
 
-
   @Override
   public boolean doesCompile() {
     return true; // ToolProvider.getSystemJavaCompiler() != null;
   }
 
-//  public boolean c(String name) {
-//    char sl = File.separatorChar;
-//
-//
-//
-//    int r = ToolProvider.getSystemJavaCompiler().run(null, null, null, folders.rootDir+"implementations"+sl+"java"+sl+"org.hl7.fhir.r4"+sl+"src"+sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl+"Type.java");
-//    return r == 0;
-//  }
-
+  // public boolean c(String name) {
+  // char sl = File.separatorChar;
+  //
+  //
+  //
+  // int r = ToolProvider.getSystemJavaCompiler().run(null, null, null,
+  // folders.rootDir+"implementations"+sl+"java"+sl+"org.hl7.fhir.r4"+sl+"src"+sl+"org"+sl+"hl7"+sl+"fhir"+sl+"r4"+sl+"model"+sl+"Type.java");
+  // return r == 0;
+  // }
 
   @Override
   public boolean compile(String rootDir, List<String> errors, Logger logger, List<ValidationMessage> issues, boolean forWeb) throws Exception {
@@ -467,8 +483,8 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     AddJarToJar(jar, Utilities.path(importsDir, "gson-2.3.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "commons-codec-1.9.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "commons-io-1.2.jar"), names);
-    //    AddJarToJar(jar, Utilities.path(importsDir, "Saxon-B-9.0.jar"), names);
-    //    AddJarToJar(jar, Utilities.path(importsDir, "saxon-dom-8.7.jar"), names);
+    // AddJarToJar(jar, Utilities.path(importsDir, "Saxon-B-9.0.jar"), names);
+    // AddJarToJar(jar, Utilities.path(importsDir, "saxon-dom-8.7.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "Saxon-HE-9.5.1-5.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "commons-lang3-3.3.2.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "commons-logging-1.1.1.jar"), names);
@@ -477,18 +493,26 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     AddJarToJar(jar, Utilities.path(importsDir, "httpclient-4.2.3.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "httpcore-4.2.2.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "hapi-fhir-base-3.4.0.jar"), names);
-    AddJarToJar(jar, Utilities.path(importsDir, "ucum-1.0-SNAPSHOT.jar"), names);
+    AddJarToJar(jar, Utilities.path(importsDir, "ucum-1.0.2.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "junit-4.11.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "hamcrest-core-1.3.jar"), names);
 
-    // by adding source first, we add all the newly built classes, and these are not updated when the older stuff is included
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.r4", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.r4", "bin", "").length(), names);
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.dstu3", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.dstu3", "bin", "").length(), names);
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.dstu2", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.dstu2", "bin", "").length(), names);
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.dstu2016may", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.dstu2016may", "bin", "").length(), names);
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.convertors", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.convertors", "bin", "").length(), names);
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.validation", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.validation", "bin", "").length(), names);
-    AddToJar(jar, new File(Utilities.path(rootDir+"implementations", "java", "org.hl7.fhir.utilities", "bin")), Utilities.path(rootDir,"implementations", "java", "org.hl7.fhir.utilities", "bin", "").length(), names);
+    // by adding source first, we add all the newly built classes, and these are not
+    // updated when the older stuff is included
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.r4", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.r4", "bin", "").length(), names);
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.dstu3", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.dstu3", "bin", "").length(), names);
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.dstu2", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.dstu2", "bin", "").length(), names);
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.dstu2016may", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.dstu2016may", "bin", "").length(), names);
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.convertors", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.convertors", "bin", "").length(), names);
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.validation", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.validation", "bin", "").length(), names);
+    AddToJar(jar, new File(Utilities.path(rootDir + "implementations", "java", "org.hl7.fhir.utilities", "bin")),
+        Utilities.path(rootDir, "implementations", "java", "org.hl7.fhir.utilities", "bin", "").length(), names);
     jar.close();
 
     // now, we pack a jar with what we need for testing:
@@ -496,7 +520,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
     manifest.getMainAttributes().put(Attributes.Name.CLASS_PATH, ".");
     manifest.getMainAttributes().put(Attributes.Name.MAIN_CLASS, "org.hl7.fhir.r4.test.ToolsHelper");
-    
+
     logger.log(" .... build validator package", LogMessageType.Process);
     ImplementationGuide ig = new ImplementationGuide();
     ig.setUrl("http://hl7.org/fhir/validator");
@@ -508,8 +532,9 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     ig.setPackageId("hl7.fhir.tools.validator");
     ig.setPublisher("http://hl7.org/fhir");
     ig.addFhirVersion(FHIRVersion.fromCode(Constants.VERSION));
-        
-    NPMPackageGenerator npm = new NPMPackageGenerator(Utilities.path(folders.dstDir, "validator.tgz"), ig.getUrl(), forWeb ? "http://hl7.org/fhir" : "http://build.fhir.org", PackageType.TOOL, ig, Config.DATE_FORMAT().format(genDate) );
+
+    NPMPackageGenerator npm = new NPMPackageGenerator(Utilities.path(folders.dstDir, "validator.tgz"), ig.getUrl(),
+        forWeb ? "http://hl7.org/fhir" : "http://build.fhir.org", PackageType.TOOL, ig, Config.DATE_FORMAT().format(genDate));
     npm.addFile(Category.TOOL, "org.hl7.fhir.validator.jar", TextFile.fileToBytes(Utilities.path(folders.dstDir, "org.hl7.fhir.validator.jar")));
     npm.finish();
     return true;
@@ -517,11 +542,11 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
 
   private void addSourceFiles(int prefix, Map<String, JavaClass> classes, String name, List<String> paths) {
     if (prefix == 0)
-      prefix = name.length()+1;
+      prefix = name.length() + 1;
     File f = new File(name);
     if (f.isDirectory()) {
       for (String n : f.list()) {
-        addSourceFiles(prefix, classes, name+File.separator+n, paths);
+        addSourceFiles(prefix, classes, name + File.separator + n, paths);
       }
     } else if (name.endsWith(".java")) {
       String path = f.getParent();
@@ -560,12 +585,12 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
   }
 
   private Boolean checkNeedsCompile(List<JavaClass> dependencies) {
-    //    for (JavaClass jc : dependencies) {
-    //      if (jc.doCompile == null)
-    //        jc.doCompile = checkNeedsCompile(jc.dependencies);
-    //      if (jc.doCompile)
-    //        return true;
-    //    }
+    // for (JavaClass jc : dependencies) {
+    // if (jc.doCompile == null)
+    // jc.doCompile = checkNeedsCompile(jc.dependencies);
+    // if (jc.doCompile)
+    // return true;
+    // }
     return true;
   }
 
@@ -576,7 +601,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     while (!line.contains("class") && !line.contains("enum") && !line.contains("interface")) {
       line = line.trim();
       if (line.endsWith(";"))
-        line = line.substring(0, line.length()-1);
+        line = line.substring(0, line.length() - 1);
       if (line.startsWith("import")) {
         imports.add(line.substring(7));
       }
@@ -593,7 +618,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
       } else if (imp.startsWith("org.hl7.fhir")) {
         boolean found = false;
         if (imp.endsWith(".*")) {
-          String mask = imp.substring(0, imp.length()-1);
+          String mask = imp.substring(0, imp.length() - 1);
           for (String s : classes.keySet()) {
             if (s.startsWith(mask)) {
               list.add(classes.get(s));
@@ -612,7 +637,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
           }
         }
         if (!found)
-          throw new Error("unable to find import for class " + jc.getName() + ": " +imp);
+          throw new Error("unable to find import for class " + jc.getName() + ": " + imp);
       }
 
     }
@@ -638,16 +663,15 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     zip.close();
   }
 
-
   private static int BUFFER_SIZE = 10240;
+
   private void AddToJar(JarOutputStream jar, File file, int rootLen, List<String> names) throws Exception {
     if (!file.exists())
       return;
 
     if (file.isDirectory()) {
       String name = file.getPath().replace("\\", "/");
-      if (!name.isEmpty())
-      {
+      if (!name.isEmpty()) {
         if (!name.endsWith("/"))
           name += "/";
         String n = name.substring(rootLen);
@@ -659,7 +683,7 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
           jar.closeEntry();
         }
       }
-      for (File f: file.listFiles())
+      for (File f : file.listFiles())
         if (f.getName().endsWith(".class") || f.getName().endsWith(".jar") || f.isDirectory())
           AddToJar(jar, f, rootLen, names);
     } else {
@@ -685,28 +709,28 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     }
   }
 
-
-
   @Override
   public String getVersion() {
-    return Version.VERSION; // this has to be hard coded, but we'll fetch if later from the client and check that it's correct
+    return Version.VERSION; // this has to be hard coded, but we'll fetch if later from the client and check
+                            // that it's correct
   }
 
   public void canonicaliseXml(FolderManager folders, String sourceFile, String destFile) throws Exception {
     // for debugging: do it in process
     if (IN_PROCESS) {
       ToolsHelper t = new ToolsHelper();
-      String[] cmds = new String[] {"json", sourceFile, destFile};
+      String[] cmds = new String[] { "json", sourceFile, destFile };
       t.executeCanonicalXml(cmds);
     } else {
 
       // execute the jar file javatest.jar
-      // it will produce either the specified output file, or [output file].err with an exception
+      // it will produce either the specified output file, or [output file].err with
+      // an exception
       //
       File file = new CSFile(destFile);
       if (file.exists())
         file.delete();
-      file = new CSFile(destFile+".err");
+      file = new CSFile(destFile + ".err");
       if (file.exists())
         file.delete();
 
@@ -729,8 +753,8 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
       }
 
       process.waitFor();
-      if (new File(destFile+".err").exists())
-        throw new Exception(TextFile.fileToString(destFile+".err"));
+      if (new File(destFile + ".err").exists())
+        throw new Exception(TextFile.fileToString(destFile + ".err"));
     }
   }
 
@@ -764,7 +788,6 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     AddJarToJar(jar, Utilities.path(importsDir, "poi-ooxml-3.17.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "ooxml-schemas-1.3.jar"), names);
 
-    
     AddJarToJar(jar, Utilities.path(importsDir, "Saxon-HE-9.5.1-5.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "xpp3_xpath-1.1.4c.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "ST4-4.0.7.jar"), names);
@@ -772,40 +795,49 @@ public class JavaGenerator extends BaseGenerator implements PlatformGenerator {
     AddJarToJar(jar, Utilities.path(importsDir, "commonmark-0.12.1.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "commonmark-ext-gfm-tables-0.12.1.jar"), names);
     AddJarToJar(jar, Utilities.path(importsDir, "antlr-runtime-3.5.2.jar"), names);
-    AddJarToJar(jar, Utilities.path(importsDir, "ucum-1.0-SNAPSHOT.jar"), names);
-    
-    // by adding source first, we add all the newly built classes, and these are not updated when the older stuff is included
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.r4",          "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.r4",          "src").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.dstu3",       "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu3",       "src").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.dstu2016may", "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu2016may", "bin").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.dstu2",       "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu2",       "bin").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.convertors",  "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.convertors",  "bin").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.utilities",   "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.utilities",   "bin").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"implementations", "java", "org.hl7.fhir.validation",  "bin")), Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.validation",  "bin").length()+1, names);
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"tools",           "java", "org.hl7.fhir.igtools",     "bin")), Utilities.path(folders.rootDir, "tools",           "java", "org.hl7.fhir.igtools",     "bin").length()+1, names);
-    
-    AddToJar(jar, new File(Utilities.path(folders.rootDir,"publish", "version.info")), Utilities.path(folders.rootDir,"publish").length()+1, names);
+    AddJarToJar(jar, Utilities.path(importsDir, "ucum-1.0.2.jar"), names);
+
+    // by adding source first, we add all the newly built classes, and these are not
+    // updated when the older stuff is included
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.r4", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.r4", "src").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu3", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu3", "src").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu2016may", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu2016may", "bin").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu2", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.dstu2", "bin").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.convertors", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.convertors", "bin").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.utilities", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.utilities", "bin").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.validation", "bin")),
+        Utilities.path(folders.rootDir, "implementations", "java", "org.hl7.fhir.validation", "bin").length() + 1, names);
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "tools", "java", "org.hl7.fhir.igtools", "bin")),
+        Utilities.path(folders.rootDir, "tools", "java", "org.hl7.fhir.igtools", "bin").length() + 1, names);
+
+    AddToJar(jar, new File(Utilities.path(folders.rootDir, "publish", "version.info")), Utilities.path(folders.rootDir, "publish").length() + 1, names);
     jar.close();
-    
+
   }
 
   private boolean hasBinIGTools(String path) {
     File file = new File(path);
     return containsClassFiles(file);
   }
+
   private boolean containsClassFiles(File file) {
     if (!file.exists())
       return false;
 
     if (file.isDirectory()) {
-      for (File f: file.listFiles()) {
+      for (File f : file.listFiles()) {
         if (containsClassFiles(f))
           return true;
       }
       return false;
-    } else 
+    } else
       return file.getName().endsWith(".class");
   }
-
 
 }
